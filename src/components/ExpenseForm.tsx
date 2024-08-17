@@ -25,12 +25,15 @@ function ExpenseForm() {
 
     const [error, setError] = useState("")
 
-    const { dispatch, state } =useBudget()
+    const [previusAmount, setPreviusAmount] = useState(0)
+
+    const { dispatch, state, remainingBudget } =useBudget()
 
     useEffect(() =>{
         if(state.editingId){
             const editingExpense = state.expenses.filter( currentExpense => currentExpense.id === state.editingId)[0]
             setExpense(editingExpense)
+            setPreviusAmount(editingExpense.amount)
         }
     }, [state.editingId, state.expenses])
 
@@ -59,8 +62,18 @@ function ExpenseForm() {
             return
         }
 
-        //Agregar Gasto
-        dispatch({type: "add-expense", payload: {expense}})
+        //Validar que no se pase del limite
+        if((expense.amount - previusAmount) > remainingBudget){
+            setError("Ese gasto excede el presupuesto")
+            return
+        }
+
+        //Agregar o actualizar gasto
+        if(state.editingId){
+            dispatch({type :"update-expense", payload: {expense: { id: state.editingId, ...expense }}})
+        }else{
+            dispatch({type: "add-expense", payload: {expense}})
+        }
 
         //reiniciar state
         setExpense({
@@ -69,13 +82,15 @@ function ExpenseForm() {
             category: "",
             date: new Date()
         })
+
+        setPreviusAmount(0)
     }
 
   return (
     <form action="" className="space-y-5" onSubmit={handleSubmit}>
         <legend
             className="uppercase text-center text-2xl font-black border-b-4 border-blue-500 py-2"
-        >Nuevo Gasto</legend>
+        >{state.editingId ? "Guardar Cambios" : "Nuevo Gasto"}</legend>
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
 
@@ -151,7 +166,7 @@ function ExpenseForm() {
         <input 
             type="submit" 
             className="bg-blue-600 cursor-pointer w-full text-white uppercase p-2 font-bold rounded-lg"
-            value="Registrar gasto"
+            value={state.editingId ? "Guardar Cambios" : "Registrar Gasto"}
         />
     </form>
   )
